@@ -1,0 +1,31 @@
+0. Put audio files into the "audio" directory
+
+1. Put transcript files into the "transcript" directory
+
+2. Start your cmd and make sure your current working directory is "AnnotationFramework".
+   You can search "cmd" and then "cd" to the path.
+   You can start "cmd" in the powershell by using [start cmd].
+
+3. Generate the "tasks.json" file.
+   [Code in cmd] python prepare_tasks.py
+
+4: Get the path of the "audio" folder.
+   Right click the "audio" folder and look for the location of the file in the attributes.
+   Suppose the path is: C:\Users\sarahjwright\Box\(UA Box Health) Crane Research\D7.LIVES.NLP Project\LIvES_Data\AnnotationFramework\audio
+
+5. Set environment variables using the path in (4).
+   [Code in cmd] set LOCAL_FILES_SERVING_ENABLED=1
+   [Code in cmd] set LOCAL_LABEL_STUDIO_LOCAL_FILES_DOCUMENT_ROOT=C:\Users\sarahjwright\Box\(UA Box Health) Crane Research\D7.LIVES.NLP Project\LIvES_Data\AnnotationFramework\audio
+
+6. Verify that variables have been set correctly.
+   The following commands should show 1, and the path from (4).
+   [Code in cmd] echo %LOCAL_FILES_SERVING_ENABLED%
+   [Code in cmd] echo %LOCAL_LABEL_STUDIO_LOCAL_FILES_DOCUMENT_ROOT%
+
+7. Start LabelStudio.
+   [Code in cmd] label-studio start --data-dir data
+
+8. Load the tasks.
+   In the LabelStudio interface, click "Import".
+   Select the "tasks.json" file from (3).
+   Click "Import".

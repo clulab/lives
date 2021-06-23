@@ -1,0 +1,59 @@
+<View>
+  <Labels name="labels" toName="audio">
+    <Label value="Coach"/>
+    <Label value="Participant"/>
+  </Labels>
+  <AudioPlus name="audio" value="$audio"/>
+  <View visibleWhen="region-selected" whenLabelValue="Coach" style="display: flex;">
+    <View style="flex: 50%">
+      <Header value="MITI"/>
+      <Choices name="miti_coach" toName="audio" choice="multiple" perRegion="true">
+        <Choice value="Giving Information"/>
+        <Choice value="Persuade"/>
+        <Choice value="Open Question"/>
+        <Choice value="Closed Question"/>
+        <Choice value="Simple Reflection"/>
+        <Choice value="Complex Reflection"/>
+        <Choice value="Affirm"/>
+        <Choice value="Seeking Collaboration"/>
+        <Choice value="Emphasizing Autonomy"/>
+        <Choice value="Confront"/>
+        <Choice value="NA"/>
+      </Choices>
+    </View>
+    <View style="flex: 50%">
+      <Header value="Fidelity"/>
+      <Choices name="fidelity_coach" toName="audio" choice="multiple" perRegion="true">
+        <Choice value="checked availability"/>
+        <Choice value="calories"/>
+        <Choice value="fiber"/>
+        <Choice value="fat"/>
+        <Choice value="fruit"/>
+        <Choice value="vegetable"/>
+        <Choice value="physical activity"/>
+        <Choice value="sedentary time"/>
+        <Choice value="challenge"/>
+        <Choice value="change"/>
+        <Choice value="NA"/>
+      </Choices>
+    </View>
+  </View>
+  <View visibleWhen="region-selected" whenLabelValue="Participant" style="display: flex;">
+    <View style="flex: 50%">
+      <Header value="Fidelity"/>
+      <Choices name="fidelity_part" toName="audio" choice="multiple" perRegion="true">
+        <Choice value="calories"/>
+        <Choice value="fiber"/>
+        <Choice value="fat"/>
+        <Choice value="fruit"/>
+        <Choice value="vegetable"/>
+        <Choice value="physical activity"/>
+        <Choice value="sedentary time"/>
+        <Choice value="challenge"/>
+        <Choice value="change"/>
+        <Choice value="NA"/>
+      </Choices>
+    </View>
+  </View>
+  <Text name="text" value="$text"/>
+</View>
