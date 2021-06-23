@@ -9,13 +9,13 @@
 3. Generate the "tasks.json" file.
    [Code in cmd] python prepare_tasks.py
 
-4: Get the path of the "audio" folder.
-   Right click the "audio" folder and look for the location of the file in the attributes.
-   Suppose the path is: C:\Users\sarahjwright\Box\(UA Box Health) Crane Research\D7.LIVES.NLP Project\LIvES_Data\AnnotationFramework\audio
+4: Get the path of the "AnnotationFramework" folder.
+   Right click the "AnnotationFramework" folder and look for the location of the file in the attributes.
+   Suppose the path is: C:\Users\sarahjwright\Box\(UA Box Health) Crane Research\D7.LIVES.NLP Project\LIvES_Data\AnnotationFramework
 
 5. Set environment variables using the path in (4).
    [Code in cmd] set LOCAL_FILES_SERVING_ENABLED=1
-   [Code in cmd] set LOCAL_LABEL_STUDIO_LOCAL_FILES_DOCUMENT_ROOT=C:\Users\sarahjwright\Box\(UA Box Health) Crane Research\D7.LIVES.NLP Project\LIvES_Data\AnnotationFramework\audio
+   [Code in cmd] set LOCAL_LABEL_STUDIO_LOCAL_FILES_DOCUMENT_ROOT=C:\Users\sarahjwright\Box\(UA Box Health) Crane Research\D7.LIVES.NLP Project\LIvES_Data\AnnotationFramework
 
 6. Verify that variables have been set correctly.
    The following commands should show 1, and the path from (4).

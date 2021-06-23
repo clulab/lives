@@ -2,6 +2,7 @@ import dataclasses
 import json
 import logging
 import os
+import platform
 import re
 import xml.etree.ElementTree as et
 
@@ -32,6 +33,9 @@ for trs_file_name in os.listdir("transcript"):
                 words=[],
             ))
         utterances[-1].words.extend(turn_elem.itertext())
+    # LabelStudio requires absolute paths on Windows, but relative paths on OS X
+    if platform.system() == "Windows":
+        audio_path = os.path.abspath(audio_path)
     tasks.append(dict(
         audio_file=audio_file_name,
         transcript_file=trs_file_name,
