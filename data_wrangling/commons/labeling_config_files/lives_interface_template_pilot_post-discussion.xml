@@ -1,0 +1,140 @@
+<View>
+  <Style>
+    .category-heading { border: 2px solid black; text-align: center; }
+    .ant-form-item-control-input { min-height: 16px; }
+  </Style>
+  <AudioPlus name="audio" value="$audio" hotkey="q"/>
+  <Labels name="labels" toName="audio">
+    <Label alias="coach" value="Coach" hotkey="w"/>
+    <Label alias="participant" value="Participant" hotkey="e"/>
+  </Labels>
+  <View visibleWhen="no-region-selected" style="flex: 50%;">
+    <View className="category-heading">
+      <Header value="Interview Global Constructs" size="5"/>
+    </View>
+    <Header value="1. Autonomy/Support" size="7"/>
+    <Rating name="interview_autonomy_support" toName="audio" maxRating="5" icon="star" size="medium" perRegion="false" hotkey="1"/>
+    <Header value="2. Collaboration" size="7"/>
+    <Rating name="interview_collaboration" toName="audio" maxRating="5" icon="star" size="medium" perRegion="false" hotkey="2"/>
+    <Header value="3. Direction" size="7"/>
+    <Rating name="interview_direction" toName="audio" maxRating="5" icon="star" size="medium" perRegion="false" hotkey="3"/>
+    <Header value="4. Empathy" size="7"/>
+    <Rating name="interview_empathy" toName="audio" maxRating="5" icon="star" size="medium" perRegion="false" hotkey="4"/>
+    <Header value="5. Evocation" size="7"/>
+    <Rating name="interview_evocation" toName="audio" maxRating="5" icon="star" size="medium" perRegion="false" hotkey="5"/>
+  </View>
+  <View style="display: flex;">
+    <View visibleWhen="region-selected" whenLabelValue="participant" style="flex: 50%">
+      <View className="category-heading">
+        <Header value="Participant Annotation" size="5"/>
+      </View>
+      <Header value="GI symptoms" size="5"/>
+      <Choices name="participant_gi_symptoms" toName="audio" choice="multiple" perRegion="true">
+        <Choice alias="bowel_problems" value="Bowel problems" hotkey=""/>
+        <Choice alias="nausea" value="Nausea" hotkey=""/>
+        <Choice alias="vomiting" value="Vomiting" hotkey=""/>
+        <Choice alias="loss_lack_of_appetite" value="Loss/lack of appetite" hotkey=""/>
+      </Choices>
+      <Header value="Neurological symptoms" size="5"/>
+      <Choices name="participant_neurological_symptoms" toName="audio" choice="multiple" perRegion="true">
+        <Choice alias="neuropathy" value="Neuropathy" hotkey=""/>
+        <Choice alias="brain_fog" value="Brain Fog" hotkey=""/>
+        <Choice alias="chemo_brain" value="Chemo brain" hotkey=""/>
+        <Choice alias="difficulty_concentrating" value="Difficulty Concentrating" hotkey=""/>
+      </Choices>
+      <Header value="Physical symptoms" size="5"/>
+      <Choices name="participant_physical_symptoms" toName="audio" choice="multiple" perRegion="true">
+        <Choice alias="pain" value="Pain" hotkey=""/>
+        <Choice alias="fatigue" value="Fatigue" hotkey=""/>
+      </Choices>
+      <Header value="Psychological symptoms" size="5"/>
+      <Choices name="participant_psychological_symptoms" toName="audio" choice="multiple" perRegion="true">
+        <Choice alias="anxiety" value="Anxiety" hotkey=""/>
+        <Choice alias="depression" value="Depression" hotkey=""/>
+        <Choice alias="fear_of_recurrence" value="Fear of recurrence" hotkey=""/>
+        <Choice alias="sleep_difficulties" value="Sleep difficulties" hotkey=""/>
+      </Choices>
+    </View>
+    <View visibleWhen="region-selected" whenLabelValue="participant" style="flex: 50%; margin-left: 1em">
+      <Header value="MI talk" size="5"/>
+      <Choices name="participant_mi_related" toName="audio" choice="multiple" perRegion="true">
+        <Choice alias="sustain_talk_challenges_and_barriers" value="Sustain talk, challenges, and barriers" hotkey=""/>
+        <Choice alias="change_talk_goal_talk_and_opportunities" value="Change talk, goal talk, and opportunities" hotkey=""/>
+        <Choice alias="personal_talk_mi_unrelated" value="Personal talk (MI-unrelated)" hotkey=""/>
+      </Choices>
+      <Header value="LIvES goals" size="5"/>
+      <Choices name="participant_lives_goals" toName="audio" choice="multiple" perRegion="true">
+        <Choice alias="physical_activity" value="Physical activity" hotkey=""/>
+        <Choice alias="calories" value="Calories" hotkey=""/>
+        <Choice alias="fat" value="Fat" hotkey=""/>
+        <Choice alias="fiber" value="Fiber" hotkey=""/>
+        <Choice alias="fruit" value="Fruit" hotkey=""/>
+        <Choice alias="vegetable" value="Vegetable" hotkey=""/>
+      </Choices>
+      <Header value="Annotator's notes" size="5"/>
+      <Choices name="participant_annotator_notes" toName="audio" choice="multiple" perRegion="true">
+        <Choice alias="participant_bookmark" value="Bookmark" hotkey=""/>
+        <Choice alias="participant_requires_discussion" value="Requires discussion" hotkey=""/>
+        <Choice alias="participant_culturally_interesting" value="Culturally interesting" hotkey=""/>
+        <Choice alias="participant_good_example" value="Good example" hotkey=""/>
+      </Choices>
+      <TextArea name="participant_text_note" toName="audio" editable="true" perRegion="true" required="false" rows="3" placeholder="Text notes (optional)"/>
+    </View>
+    <View visibleWhen="region-selected" whenLabelValue="coach" style="flex: 50%">
+      <View className="category-heading">
+        <Header value="Coach Annotation" size="5"/>
+      </View>
+      <Header value="MI constructs (good)" size="5"/>
+      <Choices name="coach_constructs_good" toName="audio" choice="multiple" perRegion="true">
+        <Choice alias="autonomy_support_good" value="Autonomy/Support (good)" hotkey=""/>
+        <Choice alias="collaboration_good" value="Collaboration (good)" hotkey=""/>
+        <Choice alias="direction_good" value="Direction (good)" hotkey=""/>
+        <Choice alias="empathy_good" value="Empathy (good)" hotkey=""/>
+        <Choice alias="evocation_good" value="Evocation (good)" hotkey=""/>
+      </Choices>
+      <Header value="MI constructs (bad)" size="5"/>
+      <Choices name="coach_constructs_bad" toName="audio" choice="multiple" perRegion="true">
+        <Choice alias="autonomy_support_bad" value="Autonomy/Support (bad)" hotkey=""/>
+        <Choice alias="collaboration_bad" value="Collaboration (bad)" hotkey=""/>
+        <Choice alias="direction_bad" value="Direction (bad)" hotkey=""/>
+        <Choice alias="empathy_bad" value="Empathy (bad)" hotkey=""/>
+        <Choice alias="evocation_bad" value="Evocation (bad)" hotkey=""/>
+      </Choices>
+      <Header value="Fidelity" size="5"/>
+      <Choices name="coach_fidelity" toName="audio" choice="multiple" perRegion="true">
+        <Choice alias="introduce_self_and_study_name" value="Introduce self and study name" hotkey=""/>
+        <Choice alias="check_availability" value="Check availability" hotkey=""/>
+        <Choice alias="past_goal_review" value="Past goal review" hotkey=""/>
+        <Choice alias="goal_setting" value="Goal setting" hotkey=""/>
+        <Choice alias="confirm_next_call" value="Confirm next call" hotkey=""/>
+      </Choices>
+    </View>
+    <View visibleWhen="region-selected" whenLabelValue="coach" style="flex: 50%; margin-left: 1em">
+      <Choices name="coach_techniques_adherence" toName="audio" choice="multiple" perRegion="true">
+        <Header value="MI Adhrent" size="5"/>
+        <Choice alias="asking_permission_mia" value="Asking for permission (MIA)" hotkey=""/>
+        <Choice alias="giving_information_advice_mia" value="Adequately giving information or advice (MIA)" hotkey=""/>
+        <Choice alias="freedom_affirmation_support_mia" value="Freedom emphasis, Affirmations, Support (MIA)" hotkey=""/>
+        <Header value="MI Non-adherent" size="5"/>
+        <Choice alias="giving_information_advice_mina" value="Inadequately giving information advice (MINA)" hotkey=""/>
+        <Choice alias="imposition_mina" value="Imposition (MINA)" hotkey=""/>
+        <Choice alias="confrontation_mina" value="Confrontation (MINA)" hotkey=""/>
+      </Choices>
+      <Header value="MI techniques other" size="5"/>
+      <Choices name="coach_techniques_other" toName="audio" choice="multiple" perRegion="true">
+        <Choice alias="rfi_closed" value="Request for information narrow" hotkey="z"/>
+        <Choice alias="rfi_open" value="Request for information wide" hotkey="x"/>
+        <Choice alias="reflection_simple" value="Reflection simple" hotkey=""/>
+        <Choice alias="reflection_complex" value="Reflection complex" hotkey=""/>
+      </Choices>
+      <Header value="Annotator's notes" size="5"/>
+      <Choices name="coach_annotator_notes" toName="audio" choice="multiple" perRegion="true">
+        <Choice alias="coach_bookmark" value="Bookmark" hotkey=""/>
+        <Choice alias="coach_requires_discussion" value="Requires discussion" hotkey=""/>
+        <Choice alias="coach_culturally_interesting" value="Culturally interesting" hotkey=""/>
+        <Choice alias="coach_good_example" value="Good example" hotkey=""/>
+      </Choices>
+      <TextArea name="coach_text_note" toName="audio" editable="true" perRegion="true" required="false" rows="3" placeholder="Text notes (optional)"/>
+    </View>
+  </View>
+</View>
