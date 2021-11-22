@@ -137,10 +137,13 @@ def get_annotator_annotations(annotator_annotations_dict: dict,
             if not interview_length:
                 interview_length = result["original_length"]
             # TODO: Add unit tests to make sure only one speaker is labeled per turn and turns do not repeat
+            turn_start = result["value"]["start"]
+            turn_end = result["value"]["end"]
             turn_diarisation_list.append({"annotation_id": annotation_id,
                                           "speaker": annotations,
-                                          "turn_start": result["value"]["start"],
-                                          "turn_end": result["value"]["end"]})
+                                          "turn_start": turn_start,
+                                          "turn_end": turn_end,
+                                          "turn_length": turn_end - turn_start})
         # Populate annotation dictionary with choice annotations
         elif variable_type == "choices":
             turn_annotation_list.append({"annotation_id": annotation_id,
@@ -197,20 +200,20 @@ def make_turn_diarisation_file(turn_diarisation_dict: dict,
     """Create csv file output for diarisation results
     TODO Add function to check which turns overlap and have a list in a column in the csv
     """
-    # {'annotation_id': 'wavesurfer_2em6b8b589', 'speaker': ['coach'], 'turn_start': 1023.1140962417152, 'turn_end': 1024.739251627276}
+    # {'annotation_id': 'wavesurfer_2em6b8b589', 'speaker': ['coach'], 'turn_start': 1023.1140962417152, 'turn_end': 1024.739251627276, 'turn_length': 1.6251553855608}
     CSV_HEADINGS_TURN_DIARISATION = ",speaker_type,turn_start,turn_end,turn_length,is_overlapped,overlapping\n"
     if start:
         with open(csv_write_diarisation_path, 'w') as out_file:
             out_file.write(f"{heading_prefix}{CSV_HEADINGS_TURN_DIARISATION}")
             for annotator in turn_diarisation_dict:
                 for annotation in turn_diarisation_dict[annotator]:
-                    fields = f"{csv_prefix},{annotator},{annotation['annotation_id']},{annotation['speaker'][0]},{annotation['turn_start']},{annotation['turn_end']}\n"
+                    fields = f"{csv_prefix},{annotator},{annotation['annotation_id']},{annotation['speaker'][0]},{annotation['turn_start']},{annotation['turn_end']},{annotation['turn_length']}\n"
                     out_file.write(fields)
     else:
         with open(csv_write_diarisation_path, 'a') as out_file:
             for annotator in turn_diarisation_dict:
                 for annotation in turn_diarisation_dict[annotator]:
-                    fields = f"{csv_prefix},{annotator},{annotation['annotation_id']},{annotation['speaker'][0]},{annotation['turn_start']},{annotation['turn_end']}\n"
+                    fields = f"{csv_prefix},{annotator},{annotation['annotation_id']},{annotation['speaker'][0]},{annotation['turn_start']},{annotation['turn_end']},{annotation['turn_length']}\n"
                     out_file.write(fields)
 
 
