@@ -42,7 +42,7 @@ from pathlib import Path, PosixPath
 from typing import Optional
 
 from commons.lives_exceptions import AnnotationBaseError
-
+from commons.turn_overlaps import find_overlaps
 
 ################ ANNOTATION DETAILS ##################
 
@@ -137,10 +137,13 @@ def get_annotator_annotations(annotator_annotations_dict: dict,
             if not interview_length:
                 interview_length = result["original_length"]
             # TODO: Add unit tests to make sure only one speaker is labeled per turn and turns do not repeat
+            turn_start = result["value"]["start"]
+            turn_end = result["value"]["end"]
             turn_diarisation_list.append({"annotation_id": annotation_id,
                                           "speaker": annotations,
-                                          "turn_start": result["value"]["start"],
-                                          "turn_end": result["value"]["end"]})
+                                          "turn_start": turn_start,
+                                          "turn_end": turn_end,
+                                          "turn_length": turn_end - turn_start})
         # Populate annotation dictionary with choice annotations
         elif variable_type == "choices":
             turn_annotation_list.append({"annotation_id": annotation_id,
@@ -160,6 +163,28 @@ def get_annotator_annotations(annotator_annotations_dict: dict,
                                               "variable_type": variable_type,
                                               "variable_subtype": variable_name,
                                               "rating": annotations})
+
+    # Add diarisation overlaps
+    d_starts = [d['turn_start'] for d in turn_diarisation_list]
+    d_ends = [d['turn_end'] for d in turn_diarisation_list]
+    d_ids = [d['annotation_id'] for d in turn_diarisation_list]
+    overlap_bools = []
+    overlap_indeces = []
+    turns = tuple(zip(d_starts, d_ends))
+    assert len(turns) == len(turn_diarisation_list)
+    for turn_i, turn in enumerate(turns):
+        overlaps = find_overlaps(turns, turn, turn_i)
+        if overlaps:
+            turn_diarisation_list[turn_i]['is_overlapped'] = True
+            overlapping_ids = ''
+            for overlap_i in overlaps:
+                overlapping_ids += '-'+ d_ids[overlap_i]
+            turn_diarisation_list[turn_i]['overlapping'] = overlapping_ids
+        else:
+            turn_diarisation_list[turn_i]['is_overlapped'] = False
+            overlap_bools.append(False)
+            turn_diarisation_list[turn_i]['overlapping'] = ''
+
     if interview_length:
         return turn_diarisation_list, turn_annotation_list, interview_annotation_list, annotator_id, interview_length
     return turn_diarisation_list, turn_annotation_list, interview_annotation_list, annotator_id, "UNKNOWN"
@@ -197,20 +222,22 @@ def make_turn_diarisation_file(turn_diarisation_dict: dict,
     """Create csv file output for diarisation results
     TODO Add function to check which turns overlap and have a list in a column in the csv
     """
-    # {'annotation_id': 'wavesurfer_2em6b8b589', 'speaker': ['coach'], 'turn_start': 1023.1140962417152, 'turn_end': 1024.739251627276}
+    # {'annotation_id': 'wavesurfer_2em6b8b589', 'speaker': ['coach'], 'turn_start': 1023.1140962417152, 'turn_end': 1024.739251627276, 'turn_length': 1.6251553855608}
     CSV_HEADINGS_TURN_DIARISATION = ",speaker_type,turn_start,turn_end,turn_length,is_overlapped,overlapping\n"
     if start:
         with open(csv_write_diarisation_path, 'w') as out_file:
             out_file.write(f"{heading_prefix}{CSV_HEADINGS_TURN_DIARISATION}")
             for annotator in turn_diarisation_dict:
                 for annotation in turn_diarisation_dict[annotator]:
-                    fields = f"{csv_prefix},{annotator},{annotation['annotation_id']},{annotation['speaker'][0]},{annotation['turn_start']},{annotation['turn_end']}\n"
+                    fields = f"{csv_prefix},{annotator},{annotation['annotation_id']},{annotation['speaker'][0]},{annotation['turn_start']}"\
+                             + f",{annotation['turn_end']},{annotation['turn_length']},{annotation['is_overlapped']},{annotation['overlapping']}\n"
                     out_file.write(fields)
     else:
         with open(csv_write_diarisation_path, 'a') as out_file:
             for annotator in turn_diarisation_dict:
                 for annotation in turn_diarisation_dict[annotator]:
-                    fields = f"{csv_prefix},{annotator},{annotation['annotation_id']},{annotation['speaker'][0]},{annotation['turn_start']},{annotation['turn_end']}\n"
+                    fields = f"{csv_prefix},{annotator},{annotation['annotation_id']},{annotation['speaker'][0]},{annotation['turn_start']}"\
+                             + f",{annotation['turn_end']},{annotation['turn_length']},{annotation['is_overlapped']},{annotation['overlapping']}\n"
                     out_file.write(fields)
 
 
