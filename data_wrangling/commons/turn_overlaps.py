@@ -24,6 +24,14 @@ def find_overlaps(turns:list[turn], query:tuple[turn], index:int) -> list:
         print(f"turn {i+1}, {k}")
         print(find_overlaps(turns, k, i))
 
+    Issues
+    ------
+    Known bug:
+        This algorithm will take exact matching boundaries as overlaps.
+        This may not be a problem as turns are defined to more than 10 decimals
+        For example, these turns would count as overlapping: (0.21,0.30), (0.30,0.40)
+        But because we have more decimal places, they do not: (0.210,0.300), (0.301,0.400)
+
     Tests
     -----
     >>> find_overlaps([(0.20,0.41), (0.21,0.30), (0.28,0.39)], (0.20,0.41), 0)
