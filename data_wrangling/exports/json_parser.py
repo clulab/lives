@@ -192,7 +192,7 @@ def get_annotator_annotations(annotator_annotations_dict: dict,
 
 ################ OUTPUT FUNCTIONS ########################
 
-def save_individual_interview(output_prefix_path: str,
+def save_individual_interview(output_prefix_path: PosixPath,
                               wav_file_name: str,
                               interview_id: str,
                               interview: dict) -> None:
@@ -212,6 +212,69 @@ def save_individual_interview(output_prefix_path: str,
     with open(out_path, "w") as out_json:
         json.dump(interview, out_json, ensure_ascii=False, indent=4)
         print(f"** Saved File {output_interview_json}**\n")
+
+
+def make_rttm_file(turn_diarisation_dict: dict,
+                   output_prefix_path: PosixPath,
+                   wav_file_name: str,
+                   interview_id: str,
+                   combined:bool = True,
+                   overlapping:bool = True,
+                   non_overlapping: bool = True) -> None:
+    """Save rttm diarisation files by annotator
+
+    Currently, saves all three versions by default:
+        - combined: overlapping and non-overlapping turns
+        - overlapping turns only
+        - non-overlapping turns only
+        - See https://github.com/clulab/lives/issues/9
+    """
+    TYPE = 'SPEAKER'
+    FILE_ID = wav_file_name.removesuffix(r'.wav')
+    CHANNEL_ID = 1
+    TURN_ONSET = None
+    TURN_DURATION = None
+    ORTHOGRAPHY_FIELD = '<NA>'
+    SPEAKER_TYPE = '<NA>'
+    SPEAKER_NAME = ''
+    CONFIDENCE_SCORE = '<NA>'
+    SIGNAL_LOOKAHEAD_TIME = '<NA>'
+
+    for annotator in turn_diarisation_dict:
+
+        combined_filename_rttm = f"{FILE_ID}_ID{interview_id}_{annotator}_combined.rttm"
+        combined_path = output_prefix_path.joinpath(combined_filename_rttm)
+
+        overlapping_filename_rttm = f"{FILE_ID}_ID{interview_id}_{annotator}_overlapping.rttm"
+        overlapping_path = output_prefix_path.joinpath(overlapping_filename_rttm)        
+
+        non_overlapping_filename_rttm = f"{FILE_ID}_ID{interview_id}_{annotator}_non_overlapping.rttm"
+        non_overlapping_path = output_prefix_path.joinpath(non_overlapping_filename_rttm)        
+
+
+        with open(combined_path, "w") as combined_out,\
+             open(overlapping_path, "w") as overlapping_out,\
+             open(non_overlapping_path, "w") as non_overlapping_out:
+
+            for annotation in turn_diarisation_dict[annotator]:
+                TURN_ONSET = annotation['turn_start']
+                TURN_DURATION = annotation['turn_length']
+                SPEAKER_NAME = annotation['speaker'][0]
+
+                if combined:
+                    rttm_fields = f"{TYPE} {FILE_ID} {CHANNEL_ID} {TURN_ONSET} {TURN_DURATION} {ORTHOGRAPHY_FIELD}"\
+                                f" {SPEAKER_TYPE} {SPEAKER_NAME} {CONFIDENCE_SCORE} {SIGNAL_LOOKAHEAD_TIME}\n"
+                    combined_out.write(rttm_fields)
+
+                if overlapping:
+                    if annotation['is_overlapped']:
+                        overlapping_out.write(rttm_fields)
+
+                if non_overlapping:
+                    if not annotation['is_overlapped']:
+                        non_overlapping_out.write(rttm_fields)
+
+        print(f"** Saved Files {FILE_ID}_ID{interview_id}_{annotator}_xxxx.rttm**")
 
 
 def make_turn_diarisation_file(turn_diarisation_dict: dict,
@@ -367,12 +430,14 @@ def parse_individual_interview_details(ind_interview_data: dict):
 
 
 def parse_full_ls_export_file(individual_files: Optional[bool] = None,
+                              diarisation_rttm: Optional[bool] = None,
                               diarisation_csv: Optional[bool] = None,
                               turn_anno_csv: Optional[bool] = None,
                               interview_anno_csv: Optional[bool] = None,
                               ls_exported_file_path: Optional[PosixPath] = None,
                               output_prefix_path: Optional[PosixPath] = None,
                               csv_write_diarisation_path: Optional[PosixPath] = None,
+                              rttm_write_diarisation_path: Optional[PosixPath] = None,
                               csv_write_turn_annotation_path: Optional[PosixPath] = None,
                               csv_write_interview_annotation_path: Optional[PosixPath] = None,
                               verbose: bool = False,
@@ -429,6 +494,16 @@ def parse_full_ls_export_file(individual_files: Optional[bool] = None,
                                           interview_id=interview_id,
                                           interview=interview)
 
+            # Create individual RTTM files for DOVER-lap
+            if diarisation_rttm:
+                make_rttm_file(turn_diarisation_dict=turn_diarisation_dict,
+                               output_prefix_path=output_prefix_path,
+                               wav_file_name=wav_file_name,
+                               interview_id=interview_id,
+                               combined=True,
+                               overlapping=True,
+                               non_overlapping=True)
+
             # Create csv file output for diarisation
             if diarisation_csv:
                 make_turn_diarisation_file(turn_diarisation_dict=turn_diarisation_dict,
@@ -459,12 +534,14 @@ def parse_full_ls_export_file(individual_files: Optional[bool] = None,
 
 
 def run(individual_bckps:bool = False,
+        diarisation_rttm:bool = False,
         diarisation_csv:bool = False,
         turn_anno_csv:bool = False,
         interview_anno_csv:bool = False,
         ls_exported_file_path: Optional[PosixPath] = None,
         output_prefix_path: Optional[PosixPath] = None,
         csv_write_diarisation_path: Optional[PosixPath] = None,
+        rttm_write_diarisation_path: Optional[PosixPath] = None,
         csv_write_turn_annotation_path: Optional[PosixPath] = None,
         csv_write_interview_annotation_path: Optional[PosixPath] = None,
         verbose: bool = False,
@@ -473,12 +550,14 @@ def run(individual_bckps:bool = False,
 
     # Parsing full files goes here
     parse_full_ls_export_file(individual_files = individual_bckps,
+                     diarisation_rttm = diarisation_rttm,
                      diarisation_csv = diarisation_csv,
                      turn_anno_csv = turn_anno_csv,
                      interview_anno_csv = interview_anno_csv,
                      ls_exported_file_path = ls_exported_file_path,
                      output_prefix_path  = output_prefix_path,
                      csv_write_diarisation_path = csv_write_diarisation_path,
+                     rttm_write_diarisation_path = rttm_write_diarisation_path,
                      csv_write_turn_annotation_path = csv_write_turn_annotation_path,
                      csv_write_interview_annotation_path = csv_write_interview_annotation_path,
                      verbose = False,
@@ -507,10 +586,12 @@ if __name__ == '__main__':
 
     # Define the paths to write the resulting CSV files:
     CSV_WRITE_DIARISATION_FILE = f"turn_diarisation.csv"
+    RTTM_WRITE_DIARISATION_FILE = f".rttm"
     CSV_WRITE_TURN_ANNOTATION_FILE = f"turn_annotation.csv"
     CSV_WRITE_INTERVIEW_ANNOTATION_FILE = f"interview_annotation.csv"
 
     csv_write_diarisation_path = curr_dir.joinpath(output_prefix_path).joinpath(CSV_WRITE_DIARISATION_FILE)
+    rttm_write_diarisation_path = curr_dir.joinpath(output_prefix_path).joinpath(CSV_WRITE_DIARISATION_FILE)
     csv_write_turn_annotation_path = curr_dir.joinpath(output_prefix_path).joinpath(CSV_WRITE_TURN_ANNOTATION_FILE)
     csv_write_interview_annotation_path = curr_dir.joinpath(output_prefix_path).joinpath(CSV_WRITE_INTERVIEW_ANNOTATION_FILE)
     
@@ -520,6 +601,10 @@ if __name__ == '__main__':
     parser.add_argument("-individual", "--individualized-backup", action="store_true",
                         help='Creates individual pretty-printed interview files from LabelStudio exports for backup\
                            inside ../output/')
+
+    parser.add_argument("-rttm", "--diarisation-rttm", action="store_true",
+                        help='Creates Rich Transcription Time Marked (RTTM) files from LabelStudio exports\
+                           inside ../output/.')
 
     parser.add_argument("-diarisation", "--diarisation-csv", action="store_true",
                         help='Creates diarisation (turn detection) counts csv table from LabelStudio exports\
@@ -543,12 +628,14 @@ if __name__ == '__main__':
 
 
     run(individual_bckps = args.individualized_backup,
+        diarisation_rttm = args.diarisation_rttm,
         diarisation_csv = args.diarisation_csv,
         turn_anno_csv = args.turn_annotation_csv,
         interview_anno_csv = args.interview_annotation_csv,
         ls_exported_file_path=ls_exported_file_path,
         output_prefix_path = output_prefix_path,
         csv_write_diarisation_path = csv_write_diarisation_path,
+        rttm_write_diarisation_path = rttm_write_diarisation_path,
         csv_write_turn_annotation_path = csv_write_turn_annotation_path,
         csv_write_interview_annotation_path = csv_write_interview_annotation_path,
         verbose = args.verbose,
