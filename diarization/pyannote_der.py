@@ -1,12 +1,14 @@
 # calculate diarization error rate using pyannote
 
 from pyannote.metrics.diarization import DiarizationErrorRate
+from pyannote.metrics.errors.identification import IdentificationErrorAnalysis
 from pyannote.core import Annotation
 from pyannote.audio.utils import metric
 from pyannote.database.util import load_rttm
 #from pyannote.audio
 import numpy as np
 from pathlib import Path
+import pandas as pd
 
 
 def calculate_der(gold_rttm_path, pred_rttm_path):
@@ -26,6 +28,61 @@ def calculate_der(gold_rttm_path, pred_rttm_path):
     der = metric(gold_annotation, pred_annotation, detailed=True)
 
     return der
+
+
+def return_errors_as_rttm(gold_rttm_path, pred_rttm_path):
+    # load rttms
+    gold_annotation = load_this_rttm(gold_rttm_path)
+    pred_annotation = load_this_rttm(pred_rttm_path)
+
+    # get difference
+    diff = IdentificationErrorAnalysis().difference(reference=gold_annotation,
+                                                  hypothesis=pred_annotation)
+
+    save_name = pred_rttm_path.split(".rttm")[0] + "_difference.rttm"
+
+    with open(save_name, 'w') as save_f:
+        diff.write_rttm(save_f)
+
+
+def return_missed_detection_as_json(gold_rttm_path, pred_rttm_path):
+    """
+    Return missed detection errors in json format
+    Needs to be altered from rttm format due to
+    the extra fields in 'difference' Annotations
+    """
+    gold_annotation = load_this_rttm(gold_rttm_path)
+    pred_annotation = load_this_rttm(pred_rttm_path)
+
+    # get difference
+    diff = IdentificationErrorAnalysis().difference(reference=gold_annotation,
+                                                    hypothesis=pred_annotation)
+
+    # convert to nested dict format for reading into json
+    diff_json = diff.for_json()
+    diff_json = [item for item in diff_json['content'] if item['label'][0] == 'missed detection']
+
+    # reformat for ease of interpretation
+    for item in diff_json:
+        # put start and end in their own categories
+        item['start'] = item['segment']['start']
+        item['end'] = item['segment']['end']
+        item['length'] = item['end'] - item['start']
+        del item['segment']
+        # put missed detection and speaker in their own categories
+        item['speaker'] = item['label'][1]
+        item['label'] = item['label'][0]
+        # delete track since this is now redundant
+        del item['track']
+
+    # convert to pandas df
+    diff_df = pd.DataFrame(diff_json)
+
+    # change name for saving
+    save_name = pred_rttm_path.split(".rttm")[0] + "_missed.csv"
+
+    # save
+    diff_df.to_csv(save_name, index=False)
 
 
 def calc_global_der(gold_rttm_basepath, pred_rttm_basepath, matching_filenames, skip_overlap=False):
@@ -72,7 +129,7 @@ def load_this_rttm(rttm_path):
 
 
 if __name__ == "__main__":
-    gold_path = "/media/jculnan/backup/From LIVES folder/diarization_effort/manually_annotated/test_spanish"
+    gold_path = "/media/jculnan/backup/From LIVES folder/diarization_effort/manually_annotated/test_all"
     pred_path = "/media/jculnan/backup/From LIVES folder/diarized_files"
 
     gold_files = Path(gold_path).glob('**/*')
@@ -113,9 +170,18 @@ if __name__ == "__main__":
     print(lower_der2)
     print(upper_der2)
 
-    for id in ids:
-        this_gold = f"{gold_path}/{id}"
-        this_pred = f"{pred_path}/{id}"
+    with open("/media/jculnan/backup/From LIVES folder/diarization_effort/pyannote_der_info.csv", 'w') as f:
+        f.write("id,total,confusion,correct,false_alarm,missed_detection,der\n")
 
-        der = calculate_der(this_gold, this_pred)
-        print(f"id: {id} der: {der}")
+        for id in ids:
+            this_gold = f"{gold_path}/{id}"
+            this_pred = f"{pred_path}/{id}"
+
+            # return_missed_detection_as_json(this_gold, this_pred)
+
+            der = calculate_der(this_gold, this_pred)
+            f.write(f"{id},{der['total']},{der['confusion']},"
+                    f"{der['correct']},{der['false alarm']},"
+                    f"{der['missed detection']},"
+                    f"{der['diarization error rate']}\n")
+            print(f"id: {id} der: {der}")
