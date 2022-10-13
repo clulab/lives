@@ -1,0 +1,6 @@
+name: lives
+dependencies:
+  - python==3.10
+  - pip3
+  - pip3:
+      - -r requirements.txt

@@ -1,0 +1,5 @@
+pyannote.audio>=2.0
+pyannote.core
+pyannote.database
+pyannote.metrics
+tqdm
