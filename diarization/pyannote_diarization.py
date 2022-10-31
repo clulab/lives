@@ -17,7 +17,7 @@ from pathlib import Path
 import logging
 
 
-def diarize_n_files(diarization_pipeline, f_to_diarize, audio_dir, n):
+def diarize_n_files(diarization_pipeline, f_to_diarize, audio_dir, save_dir, n=10000):
     """
     Diarize n files
     """
@@ -27,19 +27,21 @@ def diarize_n_files(diarization_pipeline, f_to_diarize, audio_dir, n):
         if num_diarized < n:
             fpath = f"{audio_dir}/{f}.wav"
             logging.info(f"Searching for: {fpath}")
-            if Path(fpath).exists():
+            if Path(fpath).exists() and not Path(f"{save_dir}/{f}.rttm").exists():
                 logging.info(f"Now starting diarization for file {num_diarized + 1}: {f}")
                 diarization = diarization_pipeline(fpath, num_speakers=2)
 
-                with open(f"{FILENAME_DIR}/diarized_files/{f}.rttm", "w") as rttm:
+                with open(f"{save_dir}/{f}.rttm", "w") as rttm:
                     diarization.write_rttm(rttm)
                 logging.info(f"Saved RTTM file for {f}")
 
                 num_diarized += 1
+            elif Path(fpath).exists() and Path(f"{save_dir}/{f}.rttm").exists():
+                logging.info(f"File {num_diarized + 1} already diarized: {f}")
+                num_diarized += 1
             else:
                 logging.info(f"File not found: {f}")
         else:
-
             break
 
 
@@ -67,7 +69,7 @@ if __name__ == "__main__":
     #   once this is trained, change to just using local files
     pipeline = Pipeline.from_pretrained("pyannote/speaker-diarization")
 
-    diarize_n_files(pipeline, f_to_diarize, AUDIO_DIR, 100)
+    diarize_n_files(pipeline, f_to_diarize, AUDIO_DIR, f"{FILENAME_DIR}/diarized_files", 100)
 
 # clone pyannote-audio Github repository and update ROOT_DIR accordingly
 #ROOT_DIR = "/home/jculnan/github/pyannote-audio"
