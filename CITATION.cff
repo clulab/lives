@@ -1,0 +1,47 @@
+# This CITATION.cff file was generated with cffinit.
+# Visit https://bit.ly/cffinit to generate yours today!
+
+cff-version: 1.2.0
+title: 'LIvES Project: Code and Code Documentation'
+message: >-
+  If you use this software, please cite it using the
+  metadata from this file.
+type: software
+authors:
+  - given-names: Steven John
+    family-names: Bethard
+    affiliation: University of Arizona
+    orcid: 'https://orcid.org/0000-0001-9560-6491'
+  - given-names: Damian Yukio
+    family-names: Romero Diaz
+    affiliation: University of Arizona
+    orcid: 'https://orcid.org/0000-0003-4661-0296'
+  - given-names: John
+    family-names: Culnan
+    affiliation: University of Arizona
+    orcid: 'https://orcid.org/0000-0001-7327-1053'
+  - given-names: Yiyun
+    family-names: Zhao
+    affiliation: University of Arizona
+repository-code: 'https://github.com/clulab/lives'
+abstract: >-
+  Python code for the analysis and creation of
+  machine-learned models for the NIH-funded project
+  "Using natural language processing to determine
+  predictors of healthy diet and physical activity
+  behavior change in ovarian cancer survivors." For
+  more information, please consult our Data
+  Management Plan at:
+  https://dmphub.cdlib.org/dmps/doi:10.48321/D1BK5T
+
+
+  NIH NCI R21CA256680 (MPI: Crane/Bethard) for
+  01/01/2021-12/31/2022.
+keywords:
+  - Behavioral intervention
+  - Cancer research
+  - Machine learning
+  - Natural language processing
+license: MIT
+version: 0.1.0
+date-released: '2022-10-04'
