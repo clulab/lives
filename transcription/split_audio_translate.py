@@ -1,4 +1,4 @@
-import whisper
+import transcription
 import os
 import numpy as np
 import torch
@@ -10,7 +10,7 @@ import pandas as pd
 torch.cuda.is_available()
 Device = "cuda" if torch.cuda.is_available() else "cpu"
 
-model = whisper.load_model("base", device=Device)
+model = transcription.load_model("base", device=Device)
 print(
     f"Model is {'multilingual' if model.is_multilingual else 'English-only'}"
     f"and has {sum(np.prod(p.shape) for p in model.parameters()):,} parameters."

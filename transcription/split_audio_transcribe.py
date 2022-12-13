@@ -1,8 +1,8 @@
-import whisper
-import numpy as np
-import torch
 import pandas as pd
 from pathlib import Path
+import sys
+sys.path.append("/home/jculnan/github/lives")
+from transcription.whisper_utils import set_device, load_model, save_transcriptions
 
 # Whisper runs quicker with GPU. We transcribed a podcast of 1h and 10 minutes with Whisper.
 # It took: 56 minutes to run it with GPU on local machine and 4 minutes to run it ith GPU on cloud environemnt
@@ -56,27 +56,6 @@ class SplitAudioTranscriber:
 
         return data
 
-    def save_transcriptions(self, df_to_save, savename):
-        df_to_save.to_csv(f"./output/{savename}", index=False)
-
-
-def set_device():
-    # gpu or cpu
-    torch.cuda.is_available()
-    return "cuda" if torch.cuda.is_available() else "cpu"
-
-
-def load_model(device, model_type="base"):
-    # load the model
-    # we are using model type 'base' so far
-    model = whisper.load_model(model_type, device=device)
-    print(
-        f"Model is {'multilingual' if model.is_multilingual else 'English-only'} "
-        f"and has {sum(np.prod(p.shape) for p in model.parameters()):,} parameters."
-    )
-
-    return model
-
 
 def get_diarized_df(diarized_csv_path, path_to_split_audio):
     """
@@ -111,4 +90,4 @@ if __name__ == "__main__":
 
     transcriber = SplitAudioTranscriber(df)
     data = transcriber.transcribe_audio_clips()
-    transcriber.save_transcriptions(data, "split_test_transcription.csv")
+    save_transcriptions(data, "split_test_transcription.csv")

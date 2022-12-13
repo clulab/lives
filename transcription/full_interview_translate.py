@@ -1,4 +1,4 @@
-import whisper
+import transcription
 import os
 import numpy as np
 import torch
@@ -9,7 +9,7 @@ import torch
 torch.cuda.is_available()
 Device = "cuda" if torch.cuda.is_available() else "cpu"
 
-model = whisper.load_model("base", device=Device)
+model = transcription.load_model("base", device=Device)
 print(
     f"Model is {'multilingual' if model.is_multilingual else 'English-only'}"
     f"and has {sum(np.prod(p.shape) for p in model.parameters()):,} parameters."
@@ -28,14 +28,14 @@ print(file)
 Mel = []
 for i in range(len(audio_name)):
     # Open an audio file and read as mono waveform
-    audio = whisper.load_audio(audio_name[i])
+    audio = transcription.load_audio(audio_name[i])
     print(audio)
     print(len(audio))
     # Pad or trim the audio aray to N_SAMPLES, as expected by the encoder
-    audio = whisper.pad_or_trim(audio)
+    audio = transcription.pad_or_trim(audio)
     print(audio)
     # Compute the log-Mel spectrogram of
-    mel = whisper.log_mel_spectrogram(audio).to(model.device)
+    mel = transcription.log_mel_spectrogram(audio).to(model.device)
     Mel.append(mel)
     print(mel)
 print('Mel', Mel)
@@ -54,9 +54,9 @@ print(lang)
 # Print the first 30 seconds of the audio
 #for l in range(len(lang)):
     #print(l)
-    #options = whisper.DecodingOptions(language=lang[l], without_timestamps=True, fp16=False)
+    #options = transcription.DecodingOptions(language=lang[l], without_timestamps=True, fp16=False)
     #print(options)
-    #result = whisper.decode(model, Mel[l], options)
+    #result = transcription.decode(model, Mel[l], options)
     #print(result.text)
 
 # Transcribe the entire audio file with transcribe command and print the results
