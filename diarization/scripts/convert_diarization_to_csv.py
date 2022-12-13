@@ -1,4 +1,4 @@
-# convert a pyannote .rttm file to a .csv file to use with whisper
+# convert a pyannote .rttm file to a .csv file to use with transcription
 # this script should run over multiple files at once if needed
 # all turns for one file will be given in one .csv
 
@@ -41,7 +41,7 @@ class RTTMConverter:
                 # subset only necessary columns
                 rttm_df = rttm_df[["fname", "turn_start", "turn_length", "speaker"]]
 
-                # add .wav to end of fname for use with whisper scripts
+                # add .wav to end of fname for use with transcription scripts
                 rttm_df.fname = rttm_df.fname.apply(lambda x: x + ".wav")
 
                 # calculate turn end from length of turn
