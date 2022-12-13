@@ -1,11 +1,8 @@
 import pandas as pd
 from pathlib import Path
 import sys
-sys.path.append("/home/jculnan/github/lives")
+sys.path.append("/home/jculnan/github/lives")  # change or remove, as needed
 from transcription.whisper_utils import set_device, load_model, save_transcriptions
-
-# Whisper runs quicker with GPU. We transcribed a podcast of 1h and 10 minutes with Whisper.
-# It took: 56 minutes to run it with GPU on local machine and 4 minutes to run it ith GPU on cloud environemnt
 
 
 class SplitAudioTranscriber:
@@ -83,6 +80,7 @@ def get_diarized_df(diarized_csv_path, path_to_split_audio):
 
 
 if __name__ == "__main__":
+    # change paths as necessary
     diarized_path = "/media/jculnan/datadrive/lives_data_copy/diarized_csv/test_together.csv"
     split_path = Path("/media/jculnan/datadrive/lives_data_copy/split_audio")
 

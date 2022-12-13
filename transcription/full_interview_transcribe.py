@@ -2,12 +2,9 @@ import whisper
 import pandas as pd
 from pathlib import Path
 import sys
-sys.path.append("/home/jculnan/github/lives")
+sys.path.append("/home/jculnan/github/lives")  # change or remove, as needed
 print(sys.path)
 from transcription.whisper_utils import set_device, load_model, save_transcriptions
-
-# Whisper runs quicker with GPU. We transcribed a podcast of 1h and 10 minutes with Whisper.
-# It took: 56 minutes to run it with GPU on local machine and 4 minutes to run it ith GPU on cloud environemnt
 
 
 class AudioTranscriber:
@@ -112,6 +109,7 @@ class AudioTranscriber:
 
 
 if __name__ == "__main__":
+    # change paths as necessary
     audio_path = Path("/home/jculnan/github/lives/data")
 
     transcriber = AudioTranscriber(audio_path, languages=["english"])
