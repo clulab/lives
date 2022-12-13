@@ -1,4 +1,4 @@
-import transcription
+import whisper
 import os
 import numpy as np
 import torch
@@ -9,7 +9,7 @@ import torch
 torch.cuda.is_available()
 Device = "cuda" if torch.cuda.is_available() else "cpu"
 
-model = transcription.load_model("base", device=Device)
+model = whisper.load_model("base", device=Device)
 print(
     f"Model is {'multilingual' if model.is_multilingual else 'English-only'}"
     f"and has {sum(np.prod(p.shape) for p in model.parameters()):,} parameters."
@@ -28,14 +28,14 @@ print(file)
 Mel = []
 for i in range(len(audio_name)):
     # Open an audio file and read as mono waveform
-    audio = transcription.load_audio(audio_name[i])
+    audio = whisper.load_audio(audio_name[i])
     print(audio)
     print(len(audio))
     # Pad or trim the audio aray to N_SAMPLES, as expected by the encoder
-    audio = transcription.pad_or_trim(audio)
+    audio = whisper.pad_or_trim(audio)
     print(audio)
     # Compute the log-Mel spectrogram of
-    mel = transcription.log_mel_spectrogram(audio).to(model.device)
+    mel = whisper.log_mel_spectrogram(audio).to(model.device)
     Mel.append(mel)
     print(mel)
 print('Mel', Mel)
