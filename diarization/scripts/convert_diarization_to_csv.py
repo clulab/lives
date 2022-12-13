@@ -17,6 +17,7 @@ class RTTMConverter:
         """
         # create input and output paths
         self.i_path = Path(path_str)
+        self.savepath = savepath_str
         self.o_path = Path(savepath_str)
         # create directories in o_path if they don't yet exist
         self.o_path.mkdir(parents=True, exist_ok=True)
@@ -56,6 +57,18 @@ class RTTMConverter:
 
         return dfs_dict
 
+    def save_csv_files(self, together=False):
+        # save the csv files in the dfs dict -- either all separately or as a single file
+        # :param together: whether to save all dfs together
+        if not together:
+            for k, v in self.dfs_dict.items():
+                v.to_csv(f"{self.savepath}/{k}.csv", index=False)
+        else:
+            all_dfs_list = [df for _, df in self.dfs_dict.items()]
+            all_dfs = pd.concat(all_dfs_list)
+            all_dfs.to_csv(f"{self.savepath}/all_files_together.csv", index=False)
+
+
     def chunk_wav_files(self, wav_read_pathstr, wav_save_pathstr):
         # create output directory
         wav_save_path = Path(wav_save_pathstr)
@@ -76,13 +89,12 @@ class RTTMConverter:
                 # chunk using start and end times in df
                 sp.run(["ffmpeg","-ss", str(row.turn_start),  "-i", f"{wav_read_pathstr}/{row.fname}",
                         "-t", str(row.turn_length), "-c", "copy",
-                        f"{str(itempath)}/{itemname}_{str(row.turn_start)}-{str(row.turn_end)}.wav"])
+                        f"{str(itempath)}/{itemname}_{str(round(row.turn_start, 3))}-{str(round(row.turn_end, 3))}.wav"])
 
-    # def save_to_
 
 if __name__ == "__main__":
     rttmpath = "/media/jculnan/datadrive/lives_data_copy/diarized_files"
-    savepath = "/media/jculnan/datadrive/lives_data_copy/diarized_json"
+    savepath = "/media/jculnan/datadrive/lives_data_copy/diarized_csv"
 
     x = RTTMConverter(rttmpath, savepath)
     x.read_in_rttm()
@@ -90,3 +102,4 @@ if __name__ == "__main__":
         wav_read_pathstr="/media/jculnan/datadrive/lives_data_copy/Call recordings, all fidelity scored calls, n=323",
         wav_save_pathstr="/media/jculnan/datadrive/lives_data_copy/split_audio"
     )
+    x.save_csv_files(together=True)
