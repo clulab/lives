@@ -1,55 +1,114 @@
 import whisper
-import os
 import numpy as np
 import torch
 import pandas as pd
+from pathlib import Path
 
 # Whisper runs quicker with GPU. We transcribed a podcast of 1h and 10 minutes with Whisper.
 # It took: 56 minutes to run it with GPU on local machine and 4 minutes to run it ith GPU on cloud environemnt
 
-torch.cuda.is_available()
-Device = "cuda" if torch.cuda.is_available() else "cpu"
 
-model = whisper.load_model("base", device=Device)
-print(
-    f"Model is {'multilingual' if model.is_multilingual else 'English-only'}"
-    f"and has {sum(np.prod(p.shape) for p in model.parameters()):,} parameters."
-)
+class SplitAudioTranscriber:
+    def __init__(self, diarized_df):
+        self.diarized = diarized_df
+
+        self.device = set_device()
+        self.model = load_model(self.device)
+
+    def transcribe_audio_clips(self):
+        """
+        Transcribe all audio clips listed in a diarized df
+        """
+        # set holders for output
+        clip_names = []
+        transcriptions = []
+        segments = []
+        clip_languages = []
+
+        # for turn in diarized df
+        for i in range(len(self.diarized)):
+            # if turn has duration greater than 0
+            if self.diarized["turn_length"][i] > 0:
+                # transcribe the turn
+                transcribe_result = self.model.transcribe(self.diarized["split_wav_file_path"][i],
+                                                          language=self.diarized["language"][i],
+                                                          fp16=False)
+                # add the relevant components of the transcription to holders
+                segments.append(transcribe_result['segments'])
+                transcriptions.append(transcribe_result["text"])
+
+                # add the name of the audio clip and its language to holders
+                clip_names.append(self.diarized["split_wav_file_name"][i])
+                clip_languages.append(self.diarized["language"][i])
+
+        # get length of each transcribed segment
+        len_transcriptions = []
+
+        for idx, item in enumerate(segments):
+            sum = 0
+            for i in range(len(item)):
+                length = item[i]['end'] - item[i]['start']
+                sum += length
+            len_transcriptions.append(sum)
+
+        data = pd.DataFrame(list(zip(clip_names, clip_languages, transcriptions, len_transcriptions)))
+        data.columns = ['split_wav_file_name', 'language', 'transcription', 'transcription_length']
+
+        return data
+
+    def save_transcriptions(self, df_to_save, savename):
+        df_to_save.to_csv(f"./output/{savename}", index=False)
 
 
-turn_diarisation = pd.read_csv("data/turn_diarisation.csv")
-turn_diarisation["split_wav_file_path"] = None
-for i in range(len(turn_diarisation)):
-    turn_diarisation["split_wav_file_path"][i] = os.path.join("./split_audio",
-                                                              turn_diarisation["split_wav_file_name"][i])
-print(turn_diarisation)
+def set_device():
+    # gpu or cpu
+    torch.cuda.is_available()
+    return "cuda" if torch.cuda.is_available() else "cpu"
 
-# Transcribe the entire audio file with transcribe command and print the results
-interview = []
-transcribe = []
-transcribe_segment = []
-language = []
-for i in range(len(turn_diarisation)):
-    if turn_diarisation["turn_length"][i] > 0:
-        transcribe_result = model.transcribe(turn_diarisation["split_wav_file_path"][i],
-                                         language=turn_diarisation["language"][i], fp16=False)
-        transcribe_segment.append(transcribe_result['segments'])
-        interview.append(turn_diarisation["split_wav_file_name"][i])
-        language.append(turn_diarisation["language"][i])
-        transcribe.append(transcribe_result["text"])
 
-transcribe_time_length = []
-for idx, item in enumerate(transcribe_segment):
-    sum = 0
-    for i in range(len(item)):
-        length = item[i]['end'] - item[i]['start']
-        sum += length
-    transcribe_time_length.append(sum)
-print('transcibe_time_length', transcribe_time_length)
+def load_model(device, model_type="base"):
+    # load the model
+    # we are using model type 'base' so far
+    model = whisper.load_model(model_type, device=device)
+    print(
+        f"Model is {'multilingual' if model.is_multilingual else 'English-only'} "
+        f"and has {sum(np.prod(p.shape) for p in model.parameters()):,} parameters."
+    )
 
-import pandas as pd
-data = pd.DataFrame(list(zip(interview, language, transcribe, transcribe_time_length)))
-data.columns = ['split_wav_file_name','language','transcription','transcribe_time_length']
-print(data)
-data.to_csv("./output/split_audio_transcription.csv", index=False)
+    return model
 
+
+def get_diarized_df(diarized_csv_path, path_to_split_audio):
+    """
+    Prepare the diarized df from diarization csv file
+    :param diarized_csv_path: a string for the diarization csv
+    :param path_to_split_audio: a Path to the split audio files
+    """
+    diarized = pd.read_csv(diarized_csv_path)
+
+    fnames = diarized.fname.str.split(".wav").str[0]
+    starts = round(diarized.turn_start, 3).astype(str)
+    ends = round(diarized.turn_end, 3).astype(str)
+
+    diarized["split_wav_file_name"] = fnames + "_" + starts + "-" + ends + ".wav"
+
+    diarized["split_wav_file_path"] = ''
+    if "language" not in diarized.columns:
+        diarized["language"] = "english"
+
+    for i in range(len(diarized)):
+        diarized["split_wav_file_path"][i] = \
+            str(path_to_split_audio / f"{fnames[i]}/{diarized.split_wav_file_name[i]}")
+
+    return diarized
+
+
+if __name__ == "__main__":
+    diarized_path = "/media/jculnan/datadrive/lives_data_copy/diarized_csv/test_together.csv"
+    split_path = Path("/media/jculnan/datadrive/lives_data_copy/split_audio")
+
+    df = get_diarized_df(diarized_path, split_path)
+
+    transcriber = SplitAudioTranscriber(df)
+    data = transcriber.transcribe_audio_clips()
+    transcriber.save_transcriptions(data, "split_test_transcription.csv")
