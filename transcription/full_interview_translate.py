@@ -54,9 +54,9 @@ print(lang)
 # Print the first 30 seconds of the audio
 #for l in range(len(lang)):
     #print(l)
-    #options = transcription.DecodingOptions(language=lang[l], without_timestamps=True, fp16=False)
+    #options = whisper.DecodingOptions(language=lang[l], without_timestamps=True, fp16=False)
     #print(options)
-    #result = transcription.decode(model, Mel[l], options)
+    #result = whisper.decode(model, Mel[l], options)
     #print(result.text)
 
 # Transcribe the entire audio file with transcribe command and print the results
