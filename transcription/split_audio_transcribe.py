@@ -81,8 +81,8 @@ def get_diarized_df(diarized_csv_path, path_to_split_audio):
 
 if __name__ == "__main__":
     # change paths as necessary
-    diarized_path = "/media/jculnan/datadrive/lives_data_copy/diarized_csv/test_together.csv"
-    split_path = Path("/media/jculnan/datadrive/lives_data_copy/split_audio")
+    diarized_path = "/media/jculnan/datadrive/lives_data_copy/diarized_csv/test_ten.csv"
+    split_path = Path("/media/jculnan/datadrive/lives_data_copy/split_audio/test_ten")
 
     df = get_diarized_df(diarized_path, split_path)
 

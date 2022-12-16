@@ -68,9 +68,15 @@ class AudioTranscriber:
         # Transcribe the entire audio file with transcribe command and print the results
         # create holders for data
         clip_names = []
-        transcriptions = []
         clip_languages = []
+
         segments = []
+
+        # add time start, end, text, and id holders
+        clip_starts = []
+        clip_ends = []
+        clip_text = []
+        clip_ids = []
 
         # iterate over files to transcribe and transcribe them
         for i in range(len(self.all_audio_paths)):
@@ -87,11 +93,18 @@ class AudioTranscriber:
 
             # add info from transcription to holders
             segments.append(result['segments'])
-            transcriptions.append(result["text"])
+            # transcriptions.append(result["text"])
 
-            # add name of clip and its language to file
-            clip_names.append(self.all_audio_names[i])
-            clip_languages.append(self.language_preds[i] if self.language_preds else self.language)
+            # save segment information -- WE DO NOT want the full text
+            for seg in result['segments']:
+                clip_starts.append(seg['start'])
+                clip_ends.append(seg['end'])
+                clip_text.append(seg['text'])
+                clip_ids.append(seg['id'])
+
+                # add name of clip and its language to file
+                clip_names.append(self.all_audio_names[i])
+                clip_languages.append(self.language_preds[i] if self.language_preds else self.language)
 
         # calculate the length of time that was transcribed
         len_transcriptions = []
@@ -102,18 +115,18 @@ class AudioTranscriber:
                 sum += length
             len_transcriptions.append(sum)
 
-        data = pd.DataFrame(list(zip(clip_names, clip_languages, transcriptions, len_transcriptions)))
-        data.columns = ['wav_file_name', 'language', 'transcription', 'transcibe_time_length']
+        data = pd.DataFrame(list(zip(clip_names, clip_languages, clip_ids, clip_starts, clip_ends, clip_text)))
+        data.columns = ['wav_file_name', 'language', 'id', 'turn_start', 'turn_end', 'transcription']
 
         return data
 
 
 if __name__ == "__main__":
     # change paths as necessary
-    audio_path = Path("/home/jculnan/github/lives/data")
+    audio_path = Path("/home/jculnan/github/lives/data/done")
 
     transcriber = AudioTranscriber(audio_path, languages=["english"])
     data = transcriber.transcribe_audio_files()
-    save_transcriptions(data, "full_test_transcription.csv")
+    save_transcriptions(data, "full_test_transcription2.csv")
 
 
