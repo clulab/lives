@@ -50,8 +50,9 @@ class RTTMConverter:
                 # calculate time between turns
                 rttm_df['time_to_next'] = rttm_df["turn_start"].shift(-1) - rttm_df["turn_end"]
 
-                # todo: ID turns that are close together and by same speaker
-                #   and collapse over these
+                # ID turns that are close together and by same speaker
+                # and collapse over these
+                rttm_df = id_close_turns_and_collapse(rttm_df)
 
                 dfs_dict[f.stem] = rttm_df
 
@@ -90,6 +91,57 @@ class RTTMConverter:
                 sp.run(["ffmpeg","-ss", str(row.turn_start),  "-i", f"{wav_read_pathstr}/{row.fname}",
                         "-t", str(row.turn_length), "-c", "copy",
                         f"{str(itempath)}/{itemname}_{str(round(row.turn_start, 3))}-{str(round(row.turn_end, 3))}.wav"])
+
+
+def id_close_turns_and_collapse(df, threshold=1.0):
+    """
+    ID turns that are close together and collapse them into a single turn
+    :param df: a pandas dataframe containing the diarization, as above
+    :param threshold: the threshold for 'closeness'
+    returns df with some rows collapsed
+    """
+    all_df = []
+    # separate by speaker
+    # this is only needed bc of overlapping turns
+    total_seen = 0
+    for x, val in enumerate(sorted(df.speaker.unique().tolist())):
+        total_seen += 1
+        spk_df = df[df.speaker == val].reset_index(drop=True)
+
+        # holder for end of last item
+        prev_end = 0.0
+
+        temp_holder = []
+
+        for i, row in spk_df.iterrows():
+            if i == 0:
+                temp_holder.append(row.to_dict())
+            else:
+                # if row is less than threshold after last row
+                if row.turn_start - prev_end < threshold:
+                    # combine turns
+                    temp_holder[-1]['turn_end'] = row.turn_end
+                    temp_holder[-1]['turn_length'] += row.turn_length
+                    temp_holder[-1]['time_to_next'] = row.time_to_next
+                else:
+                    # if threshold is passed, we can safely move previous
+                    # item(s) from temp_holder to all_df and clear temp_holder
+                    all_df.extend(temp_holder)
+                    temp_holder = [row.to_dict()]
+            prev_end = row.turn_end
+
+        # convert to dict and add to all_df
+        if len(temp_holder) > 0:
+            all_df.extend(temp_holder)
+
+    all_df = pd.DataFrame(all_df)
+    # sort df by start time
+    all_df = all_df.sort_values(by=['turn_start'])
+
+    return all_df
+
+
+
 
 
 if __name__ == "__main__":
