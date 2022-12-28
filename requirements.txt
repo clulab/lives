@@ -3,3 +3,6 @@ pyannote.core
 pyannote.database
 pyannote.metrics
 tqdm
+pandas
+whisper
+torch
