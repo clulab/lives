@@ -3,6 +3,7 @@
 # and one-off transcription of diarized segments in places where
 # utterance boundaries in transcription have failed
 import pandas as pd
+from pathlib import Path
 import subprocess as sp
 import sys
 sys.path.append("/home/jculnan/github/lives")  # change or remove, as needed
@@ -44,20 +45,58 @@ class TransDiarCombiner:
 
         return updated_diarization
 
-    def generate_other_transcriptions(self, audio_path):
+    def generate_other_transcriptions(self, audio_path, save_chunks=False):
         # get transcriptions where missing in a pd.DataFrame
         # requires all relevant audio files to be in audio_path
+        full_diar = chunk_and_transcribe(self.diar, audio_path, save_chunks)
 
-        # go through each row
-        for i, row in self.diar.iterrows():
-            # if the transcription is missing
-            if pd.isna(row["transcription"]):
-                # use subprocess to get the clip at turn_start:turn_end
+        # update self.diar to have all transcriptions
+        self.diar = full_diar
 
-                # use whisper to get this transcription
 
-                # add the transcription to this df
-                pass
+def chunk_and_transcribe(df, wav_read_pathstr, save_chunks=False):
+    # set device and model
+    device = set_device()
+    model = load_model(device)
+
+    wav_read_path = Path(wav_read_pathstr)
+
+    # create subdir for short wav file
+    itempath = wav_read_path / "chunked"
+    itempath.mkdir(exist_ok=True)
+
+    # set holder for new df
+    updated = []
+
+    # for each line in this df:
+    for i, row in df.iterrows():
+        if not pd.isna(row.transcription):
+            updated.append(row.to_dict())
+        else:
+            # get the path/name of saved file
+            itemname = row.fname.split(".wav")[0]
+            short_wav = f"{str(itempath)}/{itemname}_{str(round(row.turn_start, 3))}-{str(round(row.turn_end, 3))}.wav"
+
+            # chunk using start and end times in df
+            if not Path.exists(Path(short_wav)):
+                sp.run(["ffmpeg","-ss", str(row.turn_start),  "-i", f"{wav_read_pathstr}/{row.fname}",
+                        "-t", str(row.turn_length), "-c", "copy",
+                        short_wav])
+
+            # transcribe this chunk
+            transcribe_result = model.transcribe(short_wav,
+                                                 language="english",  # todo: add flexibility
+                                                 fp16=False)
+
+            # add transcription to diarized file
+            row.transcription = transcribe_result["text"]
+            updated.append(row.to_dict())
+
+            # remove the chunk
+            if not save_chunks:
+                sp.run(["rm", short_wav])
+
+    return pd.DataFrame(updated)
 
 
 def get_transcription_from_diarization_single_file(diarized_df, trans_df):
@@ -133,13 +172,14 @@ def get_transcription_from_diarization_single_file(diarized_df, trans_df):
 
 
 if __name__ == "__main__":
-    # diarization_path = "/media/jculnan/datadrive/lives_data_copy/diarized_csv/test_ten.csv"
-    diarization_path = "/media/jculnan/datadrive/lives_data_copy/diarized_csv/test_50rows.csv"
-    transcription_path = "output/full_test_transcription2.csv"
+    diarization_path = "/media/jculnan/datadrive/lives_data_copy/diarized_csv/all_files_together.csv"
+    transcription_path = "output/full_transcription_next-data.csv"
 
     transcription = pd.read_csv(transcription_path)
     diarization = pd.read_csv(diarization_path)
 
     trans_di = TransDiarCombiner(transcription, diarization)
 
-    trans_di.generate_other_transcriptions("/media/change/this/later")
+    trans_di.generate_other_transcriptions("/media/jculnan/datadrive/lives_data_copy/Call recordings, all fidelity scored calls, n=323",
+                                           save_chunks=True)
+    trans_di.diar.to_csv("output/transcription_diarization_combined.csv",index=False)

@@ -123,10 +123,10 @@ class AudioTranscriber:
 
 if __name__ == "__main__":
     # change paths as necessary
-    audio_path = Path("/home/jculnan/github/lives/data/done")
+    audio_path = Path("/home/jculnan/github/lives/data/next_data")
 
     transcriber = AudioTranscriber(audio_path, languages=["english"])
     data = transcriber.transcribe_audio_files()
-    save_transcriptions(data, "full_test_transcription2.csv")
+    save_transcriptions(data, "full_transcription_next-data.csv")
 
 
