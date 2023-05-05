@@ -3,3 +3,4 @@ pyannote.core
 pyannote.database
 pyannote.metrics
 tqdm
+openai-whisper
