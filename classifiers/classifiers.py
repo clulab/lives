@@ -23,18 +23,37 @@ def construct_dataset(project_json_path, wav_file_dir, dataset_path):
             # each annotation is a LabelStudio "result"
             for annotations_json in file_json["annotations"]:
 
-                # for now, use only Damian's annotations
+                # for now, use only Grey's annotations
                 annotator = annotations_json["completed_by"]["email"]
-                if annotator != "damianiji@email.arizona.edu":
+                if annotator != "sarahjwright@email.arizona.edu":
                     continue
 
                 for result_json in annotations_json["result"]:
+                    value_json = result_json["value"]
 
-                    # LIvES utterance annotations are LabelStudio "choices"
-                    if result_json["type"] == "choices":
-                        turn_start = result_json["value"]["start"]
-                        turn_end = result_json["value"]["end"]
-                        labels = result_json["value"]["choices"]
+                    # use all annotations with spans
+                    if "start" in value_json:
+                        turn_start = value_json["start"]
+                        turn_end = value_json["end"]
+
+                        match result_json["from_name"]:
+                            case "labels":
+                                labels = value_json["labels"]
+                            case "coach_fidelity" |\
+                                 "coach_techniques_adherence" |\
+                                 "coach_constructs_good" |\
+                                 "coach_constructs_bad" |\
+                                 "coach_techniques_other" |\
+                                 "coach_annotator_notes" |\
+                                 "participant_mi_related" |\
+                                 "participant_lives_goals" |\
+                                 "participant_psychological_symptoms" |\
+                                 "participant_annotator_notes":
+                                labels = value_json["choices"]
+                            case "coach_text_note" | "participant_text_note":
+                                pass
+                            case _:
+                                raise NotImplementedError(str(result_json))
 
                         # save span and labels
                         span = turn_start, turn_end
