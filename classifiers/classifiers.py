@@ -4,7 +4,10 @@ import json
 import os.path
 import pprint
 import re
+import numpy as np
 import datasets
+import evaluate
+import transformers
 import whisper
 
 
@@ -96,8 +99,55 @@ def construct_dataset(dataset_path, wav_file_dir, project_json_paths):
     dataset.save_to_disk(dataset_path)
 
 
-def train():
-    pass
+def train(model_path, dataset_path):
+    pretrained_model_name = "roberta-base"
+    label = "change_talk_goal_talk_and_opportunities"
+
+    tokenizer = transformers.AutoTokenizer.from_pretrained(
+        pretrained_model_name)
+    data_collator = transformers.DataCollatorWithPadding(tokenizer=tokenizer)
+
+    dataset = datasets.Dataset.load_from_disk(dataset_path).map(
+        lambda examples: {"label": int(label in examples["labels"])}
+    ).map(
+        lambda examples: tokenizer(examples["text"], truncation=True),
+        batched=True
+    ).remove_columns("labels").train_test_split(test_size=0.5)
+
+    metrics = evaluate.combine(["f1", "precision", "recall"])
+
+    def compute_metrics(eval_pred):
+        logits, labels = eval_pred
+        return metrics.compute(
+            predictions=np.argmax(logits, axis=1),
+            references=labels,
+            pos_label=1,
+            average='binary')
+
+    args = transformers.TrainingArguments(
+        learning_rate=5e-5,
+        per_device_train_batch_size=32,
+        per_device_eval_batch_size=32,
+        num_train_epochs=10,
+        load_best_model_at_end=True,
+        evaluation_strategy="epoch",
+        save_strategy="epoch",
+        metric_for_best_model="eval_f1",
+        output_dir=model_path)
+    trainer = transformers.Trainer(
+        args=args,
+        model_init=lambda: transformers.AutoModelForSequenceClassification.from_pretrained(
+            pretrained_model_name,
+            num_labels=2,
+            label2id={f"not-{label}": 0, label: 1},
+            id2label={0: f"not-{label}", 1: label},
+            ignore_mismatched_sizes=True),
+        tokenizer=tokenizer,
+        data_collator=data_collator,
+        compute_metrics=compute_metrics,
+        train_dataset=dataset["train"],
+        eval_dataset=dataset["test"])
+    trainer.train()
 
 
 if __name__ == "__main__":
@@ -106,6 +156,8 @@ if __name__ == "__main__":
 
     train_parser = subparsers.add_parser("train")
     train_parser.set_defaults(func=train)
+    train_parser.add_argument("model_path")
+    train_parser.add_argument("dataset_path")
 
     dataset_parser = subparsers.add_parser("dataset")
     dataset_parser.set_defaults(func=construct_dataset)
