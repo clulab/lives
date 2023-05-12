@@ -2,6 +2,8 @@ import argparse
 import collections
 import json
 import os.path
+import pprint
+import re
 import datasets
 import whisper
 
@@ -12,27 +14,34 @@ import ssl
 ssl._create_default_https_context = ssl._create_unverified_context
 
 
-def construct_dataset(project_json_path, wav_file_dir, dataset_path):
+def construct_dataset(dataset_path, wav_file_dir, project_json_paths):
 
     # gather LabelStudio annotations, grouping by (start, end) in the audio
     file_annotations = collections.defaultdict(dict)
-    with open(project_json_path) as json_file:
-        for file_json in json.load(json_file):
-            wav_file_name = file_json["file_upload"]
+    for project_json_path in project_json_paths:
+        with open(project_json_path) as json_file:
+            for file_json in json.load(json_file):
+                wav_file_name = file_json["file_upload"]
 
-            # each annotation is a LabelStudio "result"
-            for annotations_json in file_json["annotations"]:
+                # fix some inconsistent name problems
+                re_only_pattern = re.compile(r".*(RE\w+?)[._].*")
+                wav_file_name = re_only_pattern.sub(r"\1.wav", wav_file_name)
 
-                # for now, use only Grey's annotations
-                annotator = annotations_json["completed_by"]["email"]
-                if annotator != "sarahjwright@email.arizona.edu":
+                # skip missing files
+                wav_file_path = os.path.join(wav_file_dir, wav_file_name)
+                if not os.path.exists(wav_file_path):
+                    print(f"WARNING: skipping missing file {wav_file_path}")
                     continue
 
+                # each annotation is a LabelStudio "result"
+                # until we have adjudication, use only the first annotator's work
+                annotations_json = file_json["annotations"][0]
+
                 for result_json in annotations_json["result"]:
-                    value_json = result_json["value"]
+                    value_json = result_json.get("value")
 
                     # use all annotations with spans
-                    if "start" in value_json:
+                    if value_json is not None and "start" in value_json:
                         turn_start = value_json["start"]
                         turn_end = value_json["end"]
 
@@ -47,6 +56,7 @@ def construct_dataset(project_json_path, wav_file_dir, dataset_path):
                                  "coach_annotator_notes" |\
                                  "participant_mi_related" |\
                                  "participant_lives_goals" |\
+                                 "participant_physical_symptoms"|\
                                  "participant_psychological_symptoms" |\
                                  "participant_annotator_notes":
                                 labels = value_json["choices"]
@@ -57,9 +67,15 @@ def construct_dataset(project_json_path, wav_file_dir, dataset_path):
 
                         # save span and labels
                         span = turn_start, turn_end
-                        if span not in file_annotations:
+                        if span not in file_annotations[wav_file_name]:
                             file_annotations[wav_file_name][span] = []
                         file_annotations[wav_file_name][span].extend(labels)
+
+    pprint.pprint(collections.Counter(
+        label
+        for annotations in file_annotations.values()
+        for labels in annotations.values()
+        for label in labels))
 
     # create dataset from annotations and Whisper transcriptions
     model = whisper.load_model("tiny")#"large-v2")
@@ -93,9 +109,10 @@ if __name__ == "__main__":
 
     dataset_parser = subparsers.add_parser("dataset")
     dataset_parser.set_defaults(func=construct_dataset)
-    dataset_parser.add_argument("project_json_path")
-    dataset_parser.add_argument("wav_file_dir")
     dataset_parser.add_argument("dataset_path")
+    dataset_parser.add_argument("wav_file_dir")
+    dataset_parser.add_argument("project_json_paths",
+                                nargs="+", metavar="project_json_path")
 
     kwargs = vars(parser.parse_args())
     kwargs.pop("func")(**kwargs)
