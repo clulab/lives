@@ -105,14 +105,13 @@ def train(model_path, dataset_path):
 
     tokenizer = transformers.AutoTokenizer.from_pretrained(
         pretrained_model_name)
-    data_collator = transformers.DataCollatorWithPadding(tokenizer=tokenizer)
 
     dataset = datasets.Dataset.load_from_disk(dataset_path).map(
         lambda examples: {"label": int(label in examples["labels"])}
-    ).map(
+    ).remove_columns("labels").class_encode_column("label").map(
         lambda examples: tokenizer(examples["text"], truncation=True),
         batched=True
-    ).remove_columns("labels").train_test_split(test_size=0.5)
+    ).train_test_split(seed=42, test_size=0.5, stratify_by_column="label")
 
     metrics = evaluate.combine(["f1", "precision", "recall"])
 
@@ -125,14 +124,16 @@ def train(model_path, dataset_path):
             average='binary')
 
     args = transformers.TrainingArguments(
-        learning_rate=5e-5,
+        # learning_rate=5e-5,
         per_device_train_batch_size=32,
         per_device_eval_batch_size=32,
-        num_train_epochs=10,
+        num_train_epochs=20,
         load_best_model_at_end=True,
+        save_total_limit=2,
         evaluation_strategy="epoch",
         save_strategy="epoch",
         metric_for_best_model="eval_f1",
+        report_to=["wandb"],
         output_dir=model_path)
     trainer = transformers.Trainer(
         args=args,
@@ -143,11 +144,36 @@ def train(model_path, dataset_path):
             id2label={0: f"not-{label}", 1: label},
             ignore_mismatched_sizes=True),
         tokenizer=tokenizer,
-        data_collator=data_collator,
+        data_collator=transformers.DataCollatorWithPadding(tokenizer=tokenizer),
         compute_metrics=compute_metrics,
         train_dataset=dataset["train"],
         eval_dataset=dataset["test"])
-    trainer.train()
+
+    hp_space = {
+        "project": "lives",
+        "method": "random",
+        "name": f"sweep_{pretrained_model_name}",
+        "metric": {
+            "name": "eval_f1",
+            "goal": "maximize",
+        },
+        "parameters": {
+            "learning_rate": {
+                "distribution": "uniform",
+                "min": 1e-5,
+                "max": 1e-4},
+            "seed": {
+                "distribution": "int_uniform",
+                "min": 1,
+                "max": 4},
+        }
+    }
+
+    trainer.hyperparameter_search(
+        direction="maximize",
+        backend="wandb",
+        n_trials=10,
+        hp_space=lambda trial: hp_space)
 
 
 if __name__ == "__main__":
