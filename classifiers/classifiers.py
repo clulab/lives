@@ -11,12 +11,6 @@ import transformers
 import whisper
 
 
-# ugly hack for ssl.SSLCertVerificationError
-# https://stackoverflow.com/a/28052583/384641
-import ssl
-ssl._create_default_https_context = ssl._create_unverified_context
-
-
 def construct_dataset(dataset_path, wav_file_dir, project_json_paths):
 
     # gather LabelStudio annotations, grouping by (start, end) in the audio
@@ -61,6 +55,8 @@ def construct_dataset(dataset_path, wav_file_dir, project_json_paths):
                                  "participant_lives_goals" |\
                                  "participant_physical_symptoms"|\
                                  "participant_psychological_symptoms" |\
+                                 "participant_neurological_symptoms" |\
+                                 "participant_gi_symptoms" |\
                                  "participant_annotator_notes":
                                 labels = value_json["choices"]
                             case "coach_text_note" | "participant_text_note":
@@ -81,9 +77,11 @@ def construct_dataset(dataset_path, wav_file_dir, project_json_paths):
         for label in labels))
 
     # create dataset from annotations and Whisper transcriptions
-    model = whisper.load_model("tiny")#"large-v2")
+    model = whisper.load_model("tiny")#"large-v3")
+    print("whisper loaded")
     dataset = dict(text=[], labels=[])
     for wav_file_name, annotations in file_annotations.items():
+        print(f"processing {wav_file_name}")
         wav_path = os.path.join(wav_file_dir, wav_file_name)
         audio = whisper.load_audio(wav_path)
         for ((turn_start, turn_end), labels) in sorted(annotations.items()):
