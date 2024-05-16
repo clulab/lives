@@ -99,17 +99,22 @@ def construct_dataset(dataset_path, wav_file_dir, project_json_paths):
 
 def train(model_path, dataset_path):
     pretrained_model_name = "roberta-base"
-    label = "change_talk_goal_talk_and_opportunities"
+    speaker_label = "participant"
+    target_label = "change_talk_goal_talk_and_opportunities"
 
     tokenizer = transformers.AutoTokenizer.from_pretrained(
         pretrained_model_name)
 
     dataset = datasets.Dataset.load_from_disk(dataset_path).map(
-        lambda examples: {"label": int(label in examples["labels"])}
+        lambda examples: {"label": int(target_label in examples["labels"])}
+    ).filter(
+        lambda example: speaker_label in example["labels"]
     ).remove_columns("labels").class_encode_column("label").map(
-        lambda examples: tokenizer(examples["text"], truncation=True),
+        lambda examples: tokenizer(
+            examples["text"], truncation=True, max_length=256),
         batched=True
-    ).train_test_split(seed=42, test_size=0.5, stratify_by_column="label")
+    ).train_test_split(seed=42, test_size=400, stratify_by_column="label")
+    print(dataset)
 
     metrics = evaluate.combine(["f1", "precision", "recall"])
 
@@ -123,9 +128,9 @@ def train(model_path, dataset_path):
 
     args = transformers.TrainingArguments(
         # learning_rate=5e-5,
-        per_device_train_batch_size=32,
-        per_device_eval_batch_size=32,
-        num_train_epochs=20,
+        per_device_train_batch_size=8,
+        per_device_eval_batch_size=8,
+        num_train_epochs=5,
         load_best_model_at_end=True,
         save_total_limit=2,
         evaluation_strategy="epoch",
@@ -138,8 +143,8 @@ def train(model_path, dataset_path):
         model_init=lambda: transformers.AutoModelForSequenceClassification.from_pretrained(
             pretrained_model_name,
             num_labels=2,
-            label2id={f"not-{label}": 0, label: 1},
-            id2label={0: f"not-{label}", 1: label},
+            label2id={f"not-{target_label}": 0, target_label: 1},
+            id2label={0: f"not-{target_label}", 1: target_label},
             ignore_mismatched_sizes=True),
         tokenizer=tokenizer,
         data_collator=transformers.DataCollatorWithPadding(tokenizer=tokenizer),
@@ -164,13 +169,17 @@ def train(model_path, dataset_path):
                 "distribution": "int_uniform",
                 "min": 1,
                 "max": 4},
+            "gradient_accumulation_steps": {
+                "distribution": "int_uniform",
+                "min": 1,
+                "max": 8},
         }
     }
 
     trainer.hyperparameter_search(
         direction="maximize",
         backend="wandb",
-        n_trials=10,
+        n_trials=100,
         hp_space=lambda trial: hp_space)
 
 
