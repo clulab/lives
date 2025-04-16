@@ -22,7 +22,8 @@ def construct_dataset(dataset_path, wav_file_dir, project_json_paths):
 
                 # fix some inconsistent name problems
                 re_only_pattern = re.compile(r".*(RE\w+?)[._].*")
-                wav_file_name = re_only_pattern.sub(r"\1.wav", wav_file_name)
+                suffix = '.wav' if '.wav' in wav_file_name else '.mp3'
+                wav_file_name = re_only_pattern.sub(rf"\1{suffix}", wav_file_name)
 
                 # skip missing files
                 wav_file_path = os.path.join(wav_file_dir, wav_file_name)
@@ -57,9 +58,12 @@ def construct_dataset(dataset_path, wav_file_dir, project_json_paths):
                                  "participant_psychological_symptoms" |\
                                  "participant_neurological_symptoms" |\
                                  "participant_gi_symptoms" |\
-                                 "participant_annotator_notes":
+                                 "participant_annotator_notes" |\
+                                 "coach_choices" |\
+                                 "participant_choices":
                                 labels = value_json["choices"]
-                            case "coach_text_note" | "participant_text_note":
+                            case "coach_text_note" | "participant_text_note" |\
+                                 "global_scores":
                                 pass
                             case _:
                                 raise NotImplementedError(str(result_json))
@@ -97,10 +101,8 @@ def construct_dataset(dataset_path, wav_file_dir, project_json_paths):
     dataset.save_to_disk(dataset_path)
 
 
-def train(model_path, dataset_path):
-    pretrained_model_name = "roberta-base"
-    speaker_label = "participant"
-    target_label = "change_talk_goal_talk_and_opportunities"
+def train(dataset_path, speaker_label, target_label, n_trials):
+    pretrained_model_name = "answerdotai/ModernBERT-base"
 
     tokenizer = transformers.AutoTokenizer.from_pretrained(
         pretrained_model_name)
@@ -126,18 +128,20 @@ def train(model_path, dataset_path):
             pos_label=1,
             average='binary')
 
+    name = f"{pretrained_model_name}_{speaker_label}_{target_label}"
     args = transformers.TrainingArguments(
         # learning_rate=5e-5,
         per_device_train_batch_size=8,
         per_device_eval_batch_size=8,
+        gradient_accumulation_steps=4,
         num_train_epochs=5,
         load_best_model_at_end=True,
         save_total_limit=2,
-        evaluation_strategy="epoch",
+        eval_strategy="epoch",
         save_strategy="epoch",
         metric_for_best_model="eval_f1",
         report_to=["wandb"],
-        output_dir=model_path)
+        output_dir=name)
     trainer = transformers.Trainer(
         args=args,
         model_init=lambda: transformers.AutoModelForSequenceClassification.from_pretrained(
@@ -146,7 +150,7 @@ def train(model_path, dataset_path):
             label2id={f"not-{target_label}": 0, target_label: 1},
             id2label={0: f"not-{target_label}", 1: target_label},
             ignore_mismatched_sizes=True),
-        tokenizer=tokenizer,
+        processing_class=tokenizer,
         data_collator=transformers.DataCollatorWithPadding(tokenizer=tokenizer),
         compute_metrics=compute_metrics,
         train_dataset=dataset["train"],
@@ -155,7 +159,7 @@ def train(model_path, dataset_path):
     hp_space = {
         "project": "lives",
         "method": "random",
-        "name": f"sweep_{pretrained_model_name}",
+        "name": name,
         "metric": {
             "name": "eval_f1",
             "goal": "maximize",
@@ -169,17 +173,13 @@ def train(model_path, dataset_path):
                 "distribution": "int_uniform",
                 "min": 1,
                 "max": 4},
-            "gradient_accumulation_steps": {
-                "distribution": "int_uniform",
-                "min": 1,
-                "max": 8},
         }
     }
 
     trainer.hyperparameter_search(
         direction="maximize",
         backend="wandb",
-        n_trials=100,
+        n_trials=n_trials,
         hp_space=lambda trial: hp_space)
 
 
@@ -189,8 +189,10 @@ if __name__ == "__main__":
 
     train_parser = subparsers.add_parser("train")
     train_parser.set_defaults(func=train)
-    train_parser.add_argument("model_path")
     train_parser.add_argument("dataset_path")
+    train_parser.add_argument("--speaker", dest='speaker_label', required=True)
+    train_parser.add_argument("--target", dest='target_label', required=True)
+    train_parser.add_argument("--n-trials", type=int, default=10)
 
     dataset_parser = subparsers.add_parser("dataset")
     dataset_parser.set_defaults(func=construct_dataset)
