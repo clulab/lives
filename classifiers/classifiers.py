@@ -101,7 +101,7 @@ def construct_dataset(dataset_path, wav_file_dir, project_json_paths):
     dataset.save_to_disk(dataset_path)
 
 
-def train(dataset_path, speaker_label, target_label, n_trials):
+def train(dataset_path, speaker_label, target_label, n_trials, n_epochs):
     pretrained_model_name = "answerdotai/ModernBERT-base"
 
     tokenizer = transformers.AutoTokenizer.from_pretrained(
@@ -115,8 +115,10 @@ def train(dataset_path, speaker_label, target_label, n_trials):
         lambda examples: tokenizer(
             examples["text"], truncation=True, max_length=256),
         batched=True
-    ).train_test_split(seed=42, test_size=400, stratify_by_column="label")
+    ).train_test_split(seed=42, test_size=1000, stratify_by_column="label")
     print(dataset)
+    if len({example['label'] for example in dataset['train']}) == 1:
+        raise ValueError(f"Only 1 label for {speaker_label!r} {target_label!r}")
 
     metrics = evaluate.combine(["f1", "precision", "recall"])
 
@@ -133,8 +135,8 @@ def train(dataset_path, speaker_label, target_label, n_trials):
         # learning_rate=5e-5,
         per_device_train_batch_size=8,
         per_device_eval_batch_size=8,
-        gradient_accumulation_steps=4,
-        num_train_epochs=5,
+        # gradient_accumulation_steps=4,
+        num_train_epochs=n_epochs,
         load_best_model_at_end=True,
         save_total_limit=2,
         eval_strategy="epoch",
@@ -193,6 +195,7 @@ if __name__ == "__main__":
     train_parser.add_argument("--speaker", dest='speaker_label', required=True)
     train_parser.add_argument("--target", dest='target_label', required=True)
     train_parser.add_argument("--n-trials", type=int, default=10)
+    train_parser.add_argument("--n-epochs", type=int, default=5)
 
     dataset_parser = subparsers.add_parser("dataset")
     dataset_parser.set_defaults(func=construct_dataset)
