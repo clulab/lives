@@ -3,6 +3,7 @@ import collections
 import json
 import os.path
 import pprint
+import random
 import re
 import numpy as np
 import datasets
@@ -101,7 +102,8 @@ def construct_dataset(dataset_path, wav_file_dir, project_json_paths):
     dataset.save_to_disk(dataset_path)
 
 
-def train(dataset_path, speaker_label, target_label, n_trials, n_epochs):
+def train(dataset_path, speaker_label, target_label,
+          n_trials, n_epochs, balanced):
     pretrained_model_name = "answerdotai/ModernBERT-base"
 
     tokenizer = transformers.AutoTokenizer.from_pretrained(
@@ -117,7 +119,24 @@ def train(dataset_path, speaker_label, target_label, n_trials, n_epochs):
         batched=True
     ).train_test_split(seed=42, test_size=1000, stratify_by_column="label")
     print(dataset)
-    if len({example['label'] for example in dataset['train']}) == 1:
+
+    if balanced:
+        # find indices for each label
+        label_indices = collections.defaultdict(list)
+        for i, label in enumerate(dataset['train']['label']):
+            label_indices[label].append(i)
+        # trim extra examples from more frequent labels
+        n_indices = min(len(indices) for indices in label_indices.values())
+        for label, indices in label_indices.items():
+            label_indices[label] = indices[:n_indices]
+        # trim dataset to match
+        dataset['train'] = dataset['train'].select(sorted(
+            i for indices in label_indices.values() for i in indices))
+
+    label_counts = {d: collections.Counter(e['label'] for e in dataset[d])
+                    for d in ['train', 'test']}
+    pprint.pprint(label_counts, width=1)
+    if any(len(set(label_counts[d])) == 1 for d in ['train', 'test']):
         raise ValueError(f"Only 1 label for {speaker_label!r} {target_label!r}")
 
     metrics = evaluate.combine(["f1", "precision", "recall"])
@@ -131,6 +150,8 @@ def train(dataset_path, speaker_label, target_label, n_trials, n_epochs):
             average='binary')
 
     name = f"{pretrained_model_name}_{speaker_label}_{target_label}"
+    if balanced:
+        name += "_balanced"
     args = transformers.TrainingArguments(
         # learning_rate=5e-5,
         per_device_train_batch_size=8,
@@ -196,6 +217,7 @@ if __name__ == "__main__":
     train_parser.add_argument("--target", dest='target_label', required=True)
     train_parser.add_argument("--n-trials", type=int, default=10)
     train_parser.add_argument("--n-epochs", type=int, default=5)
+    train_parser.add_argument("--balanced", action='store_true')
 
     dataset_parser = subparsers.add_parser("dataset")
     dataset_parser.set_defaults(func=construct_dataset)
