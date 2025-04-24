@@ -215,8 +215,8 @@ if __name__ == "__main__":
     train_parser.add_argument("dataset_path")
     train_parser.add_argument("--speaker", dest='speaker_label', required=True)
     train_parser.add_argument("--target", dest='target_label', required=True)
-    train_parser.add_argument("--n-trials", type=int, default=10)
-    train_parser.add_argument("--n-epochs", type=int, default=5)
+    train_parser.add_argument("--n-trials", type=int, default=1)
+    train_parser.add_argument("--n-epochs", type=int, default=3)
     train_parser.add_argument("--balanced", action='store_true')
 
     dataset_parser = subparsers.add_parser("dataset")
